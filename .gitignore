@@ -71,9 +71,7 @@ ehthumbs.db
 Thumbs.db
 
 # Project specific
-files/out*.pdf
-files/*_inverted.pdf
-files/*_combined.pdf
+files/
 processed/
 temp/
 *.log
