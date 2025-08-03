@@ -12,7 +12,9 @@ Create a Python utility that processes PDF files containing greenboard lecture n
 
 1. **Extract images from PDF pages** - Each PDF page contains a screenshot that needs to be extracted
 2. **Invert colors** - Convert greenboard (light text on dark background) to printer-friendly format (dark text on light background)
-3. **Save as new PDF** - Output the processed images as a new PDF file
+3. **Auto-crop black bars** - Remove thick black bars that appear at top/bottom after color inversion
+4. **Add text overlays** - Display output filename and page numbers at bottom right of each page
+5. **Save as new PDF** - Output the processed images as a new PDF file
 
 ## Nice-to-Have Features
 
@@ -26,14 +28,15 @@ Create a Python utility that processes PDF files containing greenboard lecture n
 
 - `PyPDF2` or `pypdf` - For PDF manipulation
 - `pdf2image` - To convert PDF pages to images
-- `Pillow (PIL)` - For image processing and color inversion
+- `Pillow (PIL)` - For image processing, color inversion, and text overlays
 - `reportlab` - To create new PDFs with processed images
+- `numpy` - For advanced image analysis and auto-cropping
 
 ## Development Setup
 
 ```bash
 # Install dependencies
-pip install PyPDF2 pdf2image Pillow reportlab
+pip install -r requirements.txt
 
 # Note: pdf2image requires poppler-utils
 # Windows: Install poppler-utils via conda or download binaries
@@ -87,7 +90,7 @@ The utility follows a modular architecture:
 - **image_processor.py**: Core color inversion logic and image processing operations  
 - **utils.py**: Shared utilities for file validation, error handling, and path operations
 
-The processing pipeline: PDF → Images → Color Inversion → Combined/Individual Images → Output PDF
+The processing pipeline: PDF → Images → Color Inversion → Auto-Crop → Page Combining (optional) → Text Overlays → Output PDF
 
 ## Key Implementation Details
 
@@ -139,8 +142,29 @@ def invert_pdf_colors(input_pdf_path, output_pdf_path):
 
 ## Implementation Notes
 
-- Use `ImageOps.invert()` for basic color inversion, but consider more sophisticated approaches for better readability
+- Use `ImageOps.invert()` for basic color inversion, with automatic black bar cropping afterward
+- Auto-crop functionality uses numpy array analysis to detect and remove black bars from top/bottom
 - For page combining, resize images proportionally to fit two on a single A4 page (portrait orientation)
+- Text overlays show output filename and page numbers with semi-transparent backgrounds for readability
 - Handle different input PDF page sizes gracefully by normalizing dimensions
 - Maintain image quality while optimizing file size for printer-friendly output
 - The utility should work with greenboard screenshots (light text on dark background) commonly found in lecture notes
+
+## Current Features
+
+✅ **Core Features Implemented:**
+- PDF to image conversion with configurable DPI
+- Color inversion with contrast/brightness enhancement
+- Automatic black bar cropping after inversion
+- Text overlays with filename and page numbers
+- Page combining (two pages per A4 sheet)
+- Batch processing support
+- Cross-platform font detection for text overlays
+
+✅ **Processing Pipeline:**
+1. Extract images from PDF pages
+2. Invert colors for printer-friendly output
+3. Auto-crop black bars from top/bottom edges
+4. Optionally combine two pages vertically on A4
+5. Add text overlays (filename + page numbers)
+6. Generate final PDF with processed images

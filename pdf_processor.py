@@ -71,6 +71,16 @@ class PDFProcessor:
             combined_images = self.image_processor.combine_pages(processed_images)
             processed_images = combined_images
         
+        print("Adding text overlays...")
+        final_images = []
+        total_pages = len(processed_images)
+        for i, image in enumerate(processed_images):
+            page_num = i + 1
+            with_text = self.image_processor.add_text_overlay(
+                image, output_path, page_num, total_pages
+            )
+            final_images.append(with_text)
+        
         print("Creating output PDF...")
-        self.images_to_pdf(processed_images, output_path)
+        self.images_to_pdf(final_images, output_path)
         print("Processing complete!")

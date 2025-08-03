@@ -3,9 +3,10 @@ Image Processing Module
 Handles color inversion and image manipulation operations
 """
 
-from PIL import Image, ImageOps, ImageEnhance
+from PIL import Image, ImageOps, ImageEnhance, ImageDraw, ImageFont
 import math
 import numpy as np
+import os
 
 class ImageProcessor:
     def __init__(self, dpi=200):
@@ -171,3 +172,85 @@ class ImageProcessor:
         
         # Ensure reasonable DPI for printing
         return image
+    
+    def add_text_overlay(self, image, filename, page_num, total_pages):
+        """
+        Add filename and page number overlay to bottom right of image
+        """
+        # Create a copy to avoid modifying original
+        img_with_text = image.copy()
+        draw = ImageDraw.Draw(img_with_text)
+        
+        # Extract just the filename without path and extension
+        base_filename = os.path.splitext(os.path.basename(filename))[0]
+        
+        # Create text strings
+        filename_text = f"{base_filename}"
+        page_text = f"Page {page_num}/{total_pages}"
+        
+        # Try to use a system font, fallback to default
+        font_size = max(12, int(image.height * 0.015))  # Scale with image size
+        try:
+            # Try common system fonts
+            font_paths = [
+                "C:/Windows/Fonts/arial.ttf",
+                "C:/Windows/Fonts/calibri.ttf", 
+                "/System/Library/Fonts/Arial.ttf",  # macOS
+                "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"  # Linux
+            ]
+            font = None
+            for font_path in font_paths:
+                if os.path.exists(font_path):
+                    font = ImageFont.truetype(font_path, font_size)
+                    break
+            
+            if font is None:
+                font = ImageFont.load_default()
+        except:
+            font = ImageFont.load_default()
+        
+        # Calculate text dimensions and positions
+        filename_bbox = draw.textbbox((0, 0), filename_text, font=font)
+        page_bbox = draw.textbbox((0, 0), page_text, font=font)
+        
+        filename_width = filename_bbox[2] - filename_bbox[0]
+        filename_height = filename_bbox[3] - filename_bbox[1]
+        page_width = page_bbox[2] - page_bbox[0]
+        page_height = page_bbox[3] - page_bbox[1]
+        
+        # Position at bottom right with margins
+        margin = 20
+        x_filename = image.width - filename_width - margin
+        y_filename = image.height - filename_height - page_height - margin - 5  # Above page number
+        
+        x_page = image.width - page_width - margin
+        y_page = image.height - page_height - margin
+        
+        # Add semi-transparent background rectangles for better readability
+        padding = 5
+        
+        # Background for filename
+        filename_bg = [
+            x_filename - padding,
+            y_filename - padding,
+            x_filename + filename_width + padding,
+            y_filename + filename_height + padding
+        ]
+        
+        # Background for page number
+        page_bg = [
+            x_page - padding,
+            y_page - padding,
+            x_page + page_width + padding,
+            y_page + page_height + padding
+        ]
+        
+        # Draw semi-transparent backgrounds
+        draw.rectangle(filename_bg, fill=(255, 255, 255, 200))
+        draw.rectangle(page_bg, fill=(255, 255, 255, 200))
+        
+        # Draw text
+        draw.text((x_filename, y_filename), filename_text, font=font, fill=(0, 0, 0))
+        draw.text((x_page, y_page), page_text, font=font, fill=(0, 0, 0))
+        
+        return img_with_text
