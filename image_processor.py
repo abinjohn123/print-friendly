@@ -5,6 +5,7 @@ Handles color inversion and image manipulation operations
 
 from PIL import Image, ImageOps, ImageEnhance
 import math
+import numpy as np
 
 class ImageProcessor:
     def __init__(self, dpi=200):
@@ -25,8 +26,11 @@ class ImageProcessor:
             # Basic color inversion
             inverted = ImageOps.invert(image)
             
+            # Auto-crop black bars that appear after inversion
+            cropped = self.auto_crop_black_bars(inverted)
+            
             # Enhance contrast for better readability
-            enhancer = ImageEnhance.Contrast(inverted)
+            enhancer = ImageEnhance.Contrast(cropped)
             enhanced = enhancer.enhance(1.2)  # Increase contrast by 20%
             
             # Slightly adjust brightness
@@ -54,6 +58,57 @@ class ImageProcessor:
         new_height = int(image.height * scale_factor)
         
         return image.resize((new_width, new_height), Image.Resampling.LANCZOS)
+    
+    def auto_crop_black_bars(self, image, threshold=30):
+        """
+        Automatically crop black bars from top and bottom of inverted images
+        threshold: darkness threshold (0-255), pixels darker than this are considered "black bars"
+        """
+        # Convert to numpy array for easier processing
+        img_array = np.array(image)
+        
+        # Convert to grayscale for analysis if needed
+        if len(img_array.shape) == 3:
+            gray = np.mean(img_array, axis=2)
+        else:
+            gray = img_array
+        
+        height, width = gray.shape
+        
+        # Find top crop point - scan from top until we find non-black content
+        top_crop = 0
+        for y in range(height):
+            row_avg = np.mean(gray[y, :])
+            if row_avg > threshold:  # Found non-black content
+                top_crop = max(0, y - 5)  # Keep small margin
+                break
+        
+        # Find bottom crop point - scan from bottom until we find non-black content
+        bottom_crop = height
+        for y in range(height - 1, -1, -1):
+            row_avg = np.mean(gray[y, :])
+            if row_avg > threshold:  # Found non-black content
+                bottom_crop = min(height, y + 5)  # Keep small margin
+                break
+        
+        # Only crop if we found meaningful black bars (at least 20 pixels)
+        if top_crop > 20 or (height - bottom_crop) > 20:
+            # Ensure we don't crop too much (keep at least 60% of original height)
+            min_height = int(height * 0.6)
+            crop_height = bottom_crop - top_crop
+            
+            if crop_height < min_height:
+                # Adjust crop points to maintain minimum height
+                center_y = height // 2
+                top_crop = max(0, center_y - min_height // 2)
+                bottom_crop = min(height, center_y + min_height // 2)
+            
+            # Perform the crop
+            cropped = image.crop((0, top_crop, width, bottom_crop))
+            return cropped
+        
+        # No significant black bars found, return original
+        return image
     
     def combine_pages(self, images):
         """
