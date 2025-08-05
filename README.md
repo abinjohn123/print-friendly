@@ -10,6 +10,10 @@ Transform dark greenboard screenshots into clean, printer-friendly documents by:
 - **Page Combining**: Optionally combines two pages vertically on a single A4 sheet to save paper
 - **Text Overlays**: Adds filename and page numbers to bottom right of each page
 
+## Examples
+
+Raw & Processed files are available in the [Examples](https://github.com/abinjohn123/print-friendly/tree/master/examples) folder
+
 ## Perfect For
 
 - **Students/Educators**: Converting tablet lecture notes for printing
