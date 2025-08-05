@@ -7,17 +7,13 @@ A Python utility that processes PDF files containing greenboard lecture notes (s
 Transform dark greenboard screenshots into clean, printer-friendly documents by:
 
 - **Color Inversion**: Converts light text on dark backgrounds to dark text on light backgrounds
-- **Auto-Crop Black Bars**: Automatically removes thick black bars that appear after color inversion
-- **Text Overlays**: Adds filename and page numbers to bottom right of each page
 - **Page Combining**: Optionally combines two pages vertically on a single A4 sheet to save paper
-- **Batch Processing**: Process individual files, multiple files, or entire folders at once
+- **Text Overlays**: Adds filename and page numbers to bottom right of each page
 
 ## Perfect For
 
-- **Students**: Converting tablet lecture notes for printing
-- **Educators**: Preparing greenboard content for distribution
-- **Note-takers**: Making handwritten notes printer-friendly
-- **Anyone**: Processing dark-background PDFs for better printing
+- **Students/Educators**: Converting tablet lecture notes for printing
+- **Anybody else :)**: Processing dark-background PDFs for better printing
 
 ## Requirements
 
@@ -62,9 +58,9 @@ python main.py input_folder/ --output-dir processed/ --combine-pages --quality 3
 
 1. **PDF to Images**: Extract high-quality images from PDF pages
 2. **Color Inversion**: Convert greenboard colors with contrast enhancement
-3. **Auto-Crop**: Remove black bars using intelligent edge detection
+3. **Auto-Crop**: Remove vertical black bars using edge detection
 4. **Page Combining** (optional): Fit two pages on single A4 sheet
-5. **Text Overlays**: Add filename and page numbers for reference
+5. **Text Overlays**: Add output filename and page numbers for reference
 6. **PDF Generation**: Create final printer-friendly PDF
 
 ## Command Line Options
@@ -73,11 +69,11 @@ python main.py input_folder/ --output-dir processed/ --combine-pages --quality 3
 python main.py INPUT [INPUT ...] [OPTIONS]
 
 Arguments:
-  INPUT                 Input PDF file(s) or folder to process
+  INPUT                 Input PDF file or folder to process
 
 Options:
   -o, --output          Output PDF file (for single file processing)
-  --output-dir          Output directory (for batch/folder processing)
+  --output-dir          Output directory (for folder processing)
   --combine-pages       Combine two pages vertically on single A4 sheet
   --quality             DPI for image processing (default: 200)
   -h, --help           Show help message
