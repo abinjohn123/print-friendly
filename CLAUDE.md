@@ -154,7 +154,9 @@ def invert_pdf_colors(input_pdf_path, output_pdf_path):
 
 ✅ **Core Features Implemented:**
 - PDF to image conversion with configurable DPI
-- Color inversion with contrast/brightness enhancement
+- **Smart conditional color inversion** - Only inverts colors if 70%+ of lecture content is dark
+- **Intelligent content detection** - Identifies lecture area excluding white bars in original PDFs
+- Unified smart cropping system for both content detection and black bar removal
 - Automatic black bar cropping after inversion
 - Text overlays with filename and page numbers
 - Page combining (two pages per A4 sheet)
@@ -163,8 +165,18 @@ def invert_pdf_colors(input_pdf_path, output_pdf_path):
 
 ✅ **Processing Pipeline:**
 1. Extract images from PDF pages
-2. Invert colors for printer-friendly output
-3. Auto-crop black bars from top/bottom edges
-4. Optionally combine two pages vertically on A4
-5. Add text overlays (filename + page numbers)
-6. Generate final PDF with processed images
+2. **Detect lecture content area** (ignoring white bars from original PDF)
+3. **Conditionally invert colors** only if lecture area is dark enough (≥70% dark pixels)
+4. Auto-crop black bars from top/bottom edges (post-inversion)
+5. Optionally combine two pages vertically on A4
+6. Add text overlays (filename + page numbers)
+7. Generate final PDF with processed images
+
+## Smart Inversion Technology
+
+The utility now features intelligent color inversion that:
+
+- **Content Detection**: Uses statistical analysis (standard deviation) to identify the actual lecture content area, excluding white bars that may appear in tablet screenshots
+- **Darkness Assessment**: Analyzes only the lecture content area to determine if inversion is needed (≥70% dark pixels)
+- **Unified Cropping**: Single `smart_crop_content()` function handles both pre-inversion content detection and post-inversion black bar removal
+- **Adaptive Processing**: Automatically handles both dark-background greenboard PDFs and light-background regular documents

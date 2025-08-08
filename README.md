@@ -6,7 +6,7 @@ A Python utility that processes PDF files containing greenboard lecture notes (s
 
 Transform dark greenboard screenshots into clean, printer-friendly documents by:
 
-- **Color Inversion**: Converts light text on dark backgrounds to dark text on light backgrounds
+- **Smart Color Inversion**: Detects dark content and only inverts when needed (≥70% dark pixels in lecture area)
 - **Page Combining**: Optionally combines two pages vertically on a single A4 sheet to save paper
 - **Text Overlays**: Adds filename and page numbers to bottom right of each page
 
@@ -61,11 +61,12 @@ python main.py input_folder/ --output-dir processed/ --combine-pages --quality 3
 ### Core Processing Pipeline
 
 1. **PDF to Images**: Extract high-quality images from PDF pages
-2. **Color Inversion**: Convert greenboard colors with contrast enhancement
-3. **Auto-Crop**: Remove vertical black bars using edge detection
-4. **Page Combining** (optional): Fit two pages on single A4 sheet
-5. **Text Overlays**: Add output filename and page numbers for reference
-6. **PDF Generation**: Create final printer-friendly PDF
+2. **Content Detection**: Identify lecture area, excluding white bars from tablet screenshots
+3. **Color Inversion**: Analyze content darkness and conditionally invert colors (≥70% threshold)
+4. **Auto-Crop**: Remove vertical black bars using intelligent edge detection
+5. **Page Combining** (optional): Fit two pages on single A4 sheet
+6. **Text Overlays**: Add output filename and page numbers for reference
+7. **PDF Generation**: Create final printer-friendly PDF
 
 ## Command Line Options
 

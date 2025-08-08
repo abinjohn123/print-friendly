@@ -15,20 +15,119 @@ class ImageProcessor:
         self.a4_width = int(8.27 * dpi)   # A4 width at specified DPI
         self.a4_height = int(11.69 * dpi)  # A4 height at specified DPI
     
+    def smart_crop_content(self, image, mode='content_detection', brightness_threshold=30, variation_threshold=20, min_height_ratio=0.4, margin=5):
+        """
+        Unified cropping function that can handle both content detection and black bar removal
+        
+        Args:
+            image: PIL Image to crop
+            mode: 'content_detection' (for lecture area) or 'black_bar_removal' (post-inversion)
+            brightness_threshold: For black bar removal - pixels brighter than this are content
+            variation_threshold: For content detection - std dev above this indicates content
+            min_height_ratio: Minimum height to preserve as ratio of original
+            margin: Pixels to add around detected content
+        
+        Returns:
+            Crop box tuple (left, top, right, bottom) or cropped image based on context
+        """
+        # Convert to grayscale for analysis
+        if image.mode != 'L':
+            gray = image.convert('L')
+        else:
+            gray = image
+        
+        img_array = np.array(gray)
+        height, width = img_array.shape
+        
+        top_content = 0
+        bottom_content = height
+        
+        if mode == 'content_detection':
+            # Use standard deviation to find content vs uniform areas (white bars)
+            for y in range(height):
+                row = img_array[y, :]
+                if np.std(row) > variation_threshold:
+                    top_content = y
+                    break
+            
+            for y in range(height - 1, -1, -1):
+                row = img_array[y, :]
+                if np.std(row) > variation_threshold:
+                    bottom_content = y + 1
+                    break
+                    
+        elif mode == 'black_bar_removal':
+            # Use mean brightness to find content vs dark areas (black bars)
+            for y in range(height):
+                row_avg = np.mean(img_array[y, :])
+                if row_avg > brightness_threshold:
+                    top_content = max(0, y - margin)
+                    break
+            
+            for y in range(height - 1, -1, -1):
+                row_avg = np.mean(img_array[y, :])
+                if row_avg > brightness_threshold:
+                    bottom_content = min(height, y + margin)
+                    break
+        
+        # Ensure minimum height preservation
+        min_height = int(height * min_height_ratio)
+        content_height = bottom_content - top_content
+        
+        if content_height < min_height:
+            center_y = height // 2
+            top_content = max(0, center_y - min_height // 2)
+            bottom_content = min(height, center_y + min_height // 2)
+        
+        # For black bar removal, only crop if significant bars found (20+ pixels)
+        if mode == 'black_bar_removal' and top_content <= 20 and (height - bottom_content) <= 20:
+            return image  # Return original if no significant bars found
+        
+        # Return cropped image
+        return image.crop((0, top_content, width, bottom_content))
+
+    def is_image_dark(self, image, threshold=0.7):
+        """
+        Check if image is dark enough to warrant color inversion
+        Returns True if a portion of the lecture area is dark (determined by threshold)
+        """
+        lecture_area = self.smart_crop_content(image, mode='content_detection')
+        
+        # Convert to grayscale for analysis
+        if lecture_area.mode != 'L':
+            gray = lecture_area.convert('L')
+        else:
+            gray = lecture_area
+        
+        # Convert to numpy array
+        img_array = np.array(gray)
+        
+        # Calculate percentage of dark pixels (below 128 on 0-255 scale)
+        dark_pixels = np.sum(img_array < 128)
+        total_pixels = img_array.size
+        dark_percentage = dark_pixels / total_pixels
+        
+        return dark_percentage >= threshold
+
     def invert_colors(self, image):
         """
         Invert image colors with enhanced processing for greenboard notes
+        Only performs inversion if 70% or more of the image is dark
         """
         try:
             # Convert to RGB if not already
             if image.mode != 'RGB':
                 image = image.convert('RGB')
             
+            # Check if image is dark enough to warrant inversion
+            if not self.is_image_dark(image):
+                return image  # Return original image if not dark enough
+            
             # Basic color inversion
             inverted = ImageOps.invert(image)
             
             # Auto-crop black bars that appear after inversion
-            cropped = self.auto_crop_black_bars(inverted)
+            cropped = self.smart_crop_content(inverted, mode='black_bar_removal')
             
             # Enhance contrast for better readability
             enhancer = ImageEnhance.Contrast(cropped)
@@ -60,56 +159,6 @@ class ImageProcessor:
         
         return image.resize((new_width, new_height), Image.Resampling.LANCZOS)
     
-    def auto_crop_black_bars(self, image, threshold=30):
-        """
-        Automatically crop black bars from top and bottom of inverted images
-        threshold: darkness threshold (0-255), pixels darker than this are considered "black bars"
-        """
-        # Convert to numpy array for easier processing
-        img_array = np.array(image)
-        
-        # Convert to grayscale for analysis if needed
-        if len(img_array.shape) == 3:
-            gray = np.mean(img_array, axis=2)
-        else:
-            gray = img_array
-        
-        height, width = gray.shape
-        
-        # Find top crop point - scan from top until we find non-black content
-        top_crop = 0
-        for y in range(height):
-            row_avg = np.mean(gray[y, :])
-            if row_avg > threshold:  # Found non-black content
-                top_crop = max(0, y - 5)  # Keep small margin
-                break
-        
-        # Find bottom crop point - scan from bottom until we find non-black content
-        bottom_crop = height
-        for y in range(height - 1, -1, -1):
-            row_avg = np.mean(gray[y, :])
-            if row_avg > threshold:  # Found non-black content
-                bottom_crop = min(height, y + 5)  # Keep small margin
-                break
-        
-        # Only crop if we found meaningful black bars (at least 20 pixels)
-        if top_crop > 20 or (height - bottom_crop) > 20:
-            # Ensure we don't crop too much (keep at least 60% of original height)
-            min_height = int(height * 0.6)
-            crop_height = bottom_crop - top_crop
-            
-            if crop_height < min_height:
-                # Adjust crop points to maintain minimum height
-                center_y = height // 2
-                top_crop = max(0, center_y - min_height // 2)
-                bottom_crop = min(height, center_y + min_height // 2)
-            
-            # Perform the crop
-            cropped = image.crop((0, top_crop, width, bottom_crop))
-            return cropped
-        
-        # No significant black bars found, return original
-        return image
     
     def combine_pages(self, images):
         """
